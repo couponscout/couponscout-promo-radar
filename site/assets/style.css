@@ -307,6 +307,9 @@ h3 { font-size: 1rem; }
 .foot-tag { color: #dfe6f0; font-size: .92rem; margin: 0 0 6px; }
 .foot-meta { font-size: .82rem; margin: 0 0 14px; }
 .foot-meta .sep { color: #56657f; }
+.foot-repo { color: #9fb4d4; text-decoration: underline; text-underline-offset: 2px; }
+.foot-repo:hover { color: #dbe6f5; }
+.foot-repo::before { content: "\00b7"; color: #56657f; margin: 0 6px; }
 .foot-legal { font-size: .78rem; line-height: 1.65; color: #8695ab; margin: 0; max-width: 780px; }
 
 /* ---------- responsive ---------- */

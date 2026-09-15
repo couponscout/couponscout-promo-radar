@@ -171,6 +171,17 @@ class Builder:
 
     def shell(self, *, title, description, canonical, content, jsonld=None,
               active="", og_type="website", og_image_alt="", og_image=None) -> str:
+        # The repo link is config-driven and only renders once a real URL exists.
+        # A placeholder here would be a dead link, which is exactly what the
+        # footer is supposed to stop doing.
+        repo_url = str(self.render_cfg.get("repo_url") or "").strip()
+        if repo_url:
+            repo_link = (
+                f'<a class="foot-repo" href="{esc(repo_url)}" rel="noopener">'
+                f'{esc(self.render_cfg.get("repo_label") or "Source on GitHub")}</a>'
+            )
+        else:
+            repo_link = ""
         return render(
             "base.html",
             head=self.head(title=title, description=description, canonical=canonical,
@@ -184,6 +195,7 @@ class Builder:
             generated=esc(pretty_date(self.generated_at)),
             generated_iso=esc(self.generated_at),
             domain=esc(self.site["domain"]),
+            repo_link=repo_link,
             locale=esc(self.site["locale"]),
             lang=esc(str(self.site["locale"]).split("-")[0]),
         )
