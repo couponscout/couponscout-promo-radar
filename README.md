@@ -38,11 +38,20 @@ build.py                      reads that dataset + templates/ -> site/
 templates/                    the HTML and CSS, no framework
 .ilang/site.ilang             the config: which brands, which fields, which rules
 .github/workflows/update.yml  cron every 6 hours: scrape, build, commit
+site/_manifest.json           what the last build produced, so rebuilds stay incremental
 ```
 
 The whole pipeline is pure Python standard library. No API keys, no LLM calls at runtime, no
 dependencies to install, nothing to pay for. A public repository gets unlimited GitHub Actions
 minutes, so the scheduled rebuild costs nothing.
+
+`build.py` does not wipe and regenerate `site/`. It keeps a manifest and retires only the pages
+that dropped out of the current build, so a rebuild touches a handful of files instead of
+re-writing the whole tree, and nothing unexpected in that directory gets destroyed.
+
+Product images are the brands' own, hotlinked from their CDN and never copied or re-hosted.
+When a brand publishes no image, the card renders a plain placeholder tile rather than a broken
+image.
 
 ## Using it
 
@@ -51,6 +60,7 @@ Locally:
 ```bash
 python scraper.py     # refresh data/offers.json from the brands' public pages
 python build.py       # regenerate site/
+python -m http.server 8080 --directory site    # look at it
 ```
 
 To track a different brand, edit the `PROVIDERS` block in `.ilang/site.ilang` and re-run. Both

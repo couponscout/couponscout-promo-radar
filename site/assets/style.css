@@ -124,7 +124,7 @@ h3 { font-size: 1rem; }
 .offer-card {
   display: flex; flex-direction: column;
   background: var(--card); border: 1px solid var(--line);
-  border-radius: var(--radius); padding: 14px 15px 12px;
+  border-radius: var(--radius); padding: 0 0 12px; overflow: hidden;
   box-shadow: var(--shadow); color: var(--ink);
   transition: box-shadow .12s ease, transform .12s ease, border-color .12s ease;
 }
@@ -132,6 +132,18 @@ h3 { font-size: 1rem; }
   text-decoration: none; border-color: #cfd6e0;
   box-shadow: var(--shadow-lg); transform: translateY(-1px);
 }
+
+/* Brand-supplied product image, hotlinked from their CDN. Kept on a plain
+   white tile so a transparent PNG never lands on a clashing background. */
+.offer-media { background: #fff; border-bottom: 1px solid var(--line-2); }
+.offer-img {
+  display: block; width: 100%; height: 150px;
+  object-fit: contain; padding: 10px; background: #fff;
+}
+.offer-img-empty {
+  background: linear-gradient(135deg, #f3f5f8 0%, #e9edf3 100%);
+}
+.offer-body { padding: 12px 15px 0; display: flex; flex-direction: column; flex: 1; }
 
 .offer-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .offer-prov { font-size: .78rem; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: .05em; }
@@ -149,6 +161,12 @@ h3 { font-size: 1rem; }
 .deal-tags { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
 .offer-card.verified-discount { border-left: 3px solid #eeb2ab; }
 .offer-card.sale-page { border-left: 3px solid #c3d5f4; }
+
+/* ---------- deal page media ---------- */
+.deal-media { background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 18px; display: flex; justify-content: center; }
+.deal-media img { max-width: 340px; width: 100%; height: auto; max-height: 320px;
+  object-fit: contain; display: block; }
 
 .offer-title {
   font-size: .95rem; font-weight: 600; margin: 0 0 10px;

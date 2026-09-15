@@ -122,7 +122,8 @@ class Builder:
 
     # -- shared chrome -----------------------------------------------------
     def head(self, *, title: str, description: str, canonical: str, jsonld: dict | None,
-             og_type: str = "website", og_image_alt: str = "") -> str:
+             og_type: str = "website", og_image_alt: str = "",
+             og_image: str | None = None) -> str:
         blocks = ""
         if jsonld:
             blocks = (
@@ -130,6 +131,19 @@ class Builder:
                 + json.dumps(jsonld, ensure_ascii=False, separators=(",", ":"))
                 + "</script>"
             )
+        # Only advertise an image when the brand actually published one. An empty
+        # og:image is worse than none: it makes the card render as a broken box.
+        alt = esc(og_image_alt or title)
+        if og_image:
+            image_tags = (
+                f'<meta property="og:image" content="{esc(og_image)}">\n'
+                f'<meta property="og:image:alt" content="{alt}">\n'
+                f'<meta name="twitter:image" content="{esc(og_image)}">'
+            )
+            og_card = "summary_large_image"
+        else:
+            image_tags = ""
+            og_card = "summary"
         return render(
             "head.html",
             title=esc(title),
@@ -138,7 +152,9 @@ class Builder:
             site_title=esc(self.render_cfg["site_title"]),
             domain=esc(self.site["domain"]),
             og_type=esc(og_type),
-            og_image_alt=esc(og_image_alt or title),
+            og_image_alt=alt,
+            og_image_tags=image_tags,
+            og_card=og_card,
             locale=esc(self.site["locale"]),
             jsonld=blocks,
         )
@@ -154,11 +170,12 @@ class Builder:
         return "".join(items)
 
     def shell(self, *, title, description, canonical, content, jsonld=None,
-              active="", og_type="website", og_image_alt="") -> str:
+              active="", og_type="website", og_image_alt="", og_image=None) -> str:
         return render(
             "base.html",
             head=self.head(title=title, description=description, canonical=canonical,
-                           jsonld=jsonld, og_type=og_type, og_image_alt=og_image_alt),
+                           jsonld=jsonld, og_type=og_type, og_image_alt=og_image_alt,
+                           og_image=og_image),
             nav=self.nav_html(active),
             site_title=esc(self.render_cfg["site_title"]),
             tagline=esc(self.render_cfg["site_tagline"]),
@@ -188,9 +205,20 @@ class Builder:
         else:
             badge = ""
         was = f'<span class="was">was {esc(list_price)}</span>' if list_price else ""
+        # The brand's own product image. Hotlinked from their CDN, never copied or
+        # re-hosted, and simply omitted when the source published none.
+        image = offer.get("image")
+        if image:
+            img = (
+                f'<img class="offer-img" src="{esc(image)}" alt="{esc(offer.get("title") or provider["name"])}" '
+                f'loading="lazy" decoding="async" referrerpolicy="no-referrer">'
+            )
+        else:
+            img = '<span class="offer-img offer-img-empty" aria-hidden="true"></span>'
         return render(
             "card_offer.html",
             url=f"/deal/{deal_slug(provider['name'], offer)}.html",
+            img=img,
             title=esc(offer.get("title") or provider["name"]),
             provider=esc(provider["name"]),
             price=esc(price),
@@ -311,12 +339,14 @@ class Builder:
             ),
         )
         title = f"{self.render_cfg['site_title']} - live brand discounts, updated {self.month}"
+        hero_image = next((o.get("image") for _, o in offers if o.get("image")), None)
         write(SITE / "index.html",
               self.shell(title=title,
                          description=f"Verified promo pages and live discounts from "
                                      f"{stats['providers_total']} consumer brands across apparel, beauty, "
                                      f"tech accessories and home appliances. Rebuilt every 6 hours.",
-                         canonical=f"{self.base}/", content=content, jsonld=jsonld, active="all"))
+                         canonical=f"{self.base}/", content=content, jsonld=jsonld, active="all",
+                         og_image=hero_image))
 
     def build_providers(self) -> None:
         for provider in self.providers:
@@ -372,10 +402,17 @@ class Builder:
             {"@type": "Organization", "name": name, "url": provider["homepage"]},
         ]
         if offer_block:
-            graph.append({"@type": "Product", "name": f"{name} discounted products",
-                          "brand": {"@type": "Brand", "name": name},
-                          "url": f"{self.base}/provider/{slugify(name)}.html",
-                          "offers": offer_block})
+            product_block = {
+                "@type": "Product",
+                "name": f"{name} discounted products",
+                "brand": {"@type": "Brand", "name": name},
+                "url": f"{self.base}/provider/{slugify(name)}.html",
+                "offers": offer_block,
+            }
+            lead_image = next((o.get("image") for o in offers if o.get("image")), None)
+            if lead_image:
+                product_block["image"] = lead_image
+            graph.append(product_block)
 
         content = render(
             "provider.html",
@@ -410,7 +447,8 @@ class Builder:
                                      f"Direct link to the official promo page instead."),
                          canonical=f"{self.base}/provider/{slugify(name)}.html",
                          content=content, jsonld={"@context": "https://schema.org", "@graph": graph},
-                         active=provider["category"]))
+                         active=provider["category"],
+                         og_image=next((o.get("image") for o in offers if o.get("image")), None)))
 
     def build_category(self, cat: str, group: list[dict]) -> None:
         cards = "".join(self.provider_card(p) for p in group)
@@ -480,6 +518,24 @@ class Builder:
             class_label = ""
             class_note = ""
 
+        product_node = {
+            "@type": "Product",
+            "name": offer.get("title") or provider["name"],
+            "brand": {"@type": "Brand", "name": provider["name"]},
+            "url": url,
+            "offers": {
+                "@type": "Offer",
+                "price": offer["price"],
+                "priceCurrency": offer.get("currency") or self.site["currency"],
+                "availability": "https://schema.org/InStock",
+                "url": offer["offer_url"],
+                "seller": {"@type": "Organization", "name": provider["name"]},
+            },
+        }
+        image = offer.get("image")
+        if image:
+            product_node["image"] = image
+
         jsonld = {
             "@context": "https://schema.org",
             "@graph": [
@@ -489,23 +545,19 @@ class Builder:
                      "item": f"{self.base}/provider/{slugify(provider['name'])}.html"},
                     {"@type": "ListItem", "position": 3, "name": str(offer.get("title"))[:70], "item": url},
                 ]},
-                {"@type": "Product",
-                 "name": offer.get("title") or provider["name"],
-                 "brand": {"@type": "Brand", "name": provider["name"]},
-                 "url": url,
-                 "offers": {
-                     "@type": "Offer",
-                     "price": offer["price"],
-                     "priceCurrency": offer.get("currency") or self.site["currency"],
-                     "availability": "https://schema.org/InStock",
-                     "url": offer["offer_url"],
-                     "seller": {"@type": "Organization", "name": provider["name"]},
-                 }},
+                product_node,
             ],
         }
+        media = (
+            f'<div class="deal-media"><img src="{esc(image)}" '
+            f'alt="{esc(offer.get("title") or provider["name"])}" '
+            f'loading="eager" decoding="async" referrerpolicy="no-referrer"></div>'
+            if image else ""
+        )
         content = render(
             "deal.html",
             title=esc(offer.get("title") or provider["name"]),
+            media=media,
             provider=esc(provider["name"]),
             provider_url=f"/provider/{slugify(provider['name'])}.html",
             category=esc(provider["category"]),
@@ -541,7 +593,7 @@ class Builder:
                                       + f". Price read from the brand's own public data on "
                                         f"{pretty_date(offer.get('fetched_at'))}."),
                          canonical=url, content=content, jsonld=jsonld,
-                         active=provider["category"], og_type="product"))
+                         active=provider["category"], og_type="product", og_image=image))
 
     def build_compare(self) -> None:
         rows = []
@@ -623,9 +675,27 @@ class Builder:
         self.url_count = len(urls)
 
     def run(self) -> dict:
-        if SITE.exists():
-            shutil.rmtree(SITE)
-        SITE.mkdir(parents=True)
+        """Rebuild site/ in place.
+
+        Deliberately NOT `rmtree` + regenerate. The builder keeps a manifest of
+        what it produced last time and removes only the files that dropped out of
+        the new build. That keeps the output directory cheap to update in CI,
+        avoids wiping anything a human might have put there, and makes the
+        "these pages disappeared" case explicit instead of silent.
+        """
+        SITE.mkdir(parents=True, exist_ok=True)
+        manifest_path = SITE / "_manifest.json"
+
+        if manifest_path.exists():
+            try:
+                previous = set(json.loads(manifest_path.read_text(encoding="utf-8"))["files"])
+            except Exception:
+                previous = set()
+        else:
+            # First run under the manifest scheme: adopt whatever is already there
+            # so pre-existing orphans get cleaned up rather than lingering forever.
+            previous = {p.relative_to(SITE).as_posix() for p in SITE.rglob("*") if p.is_file()}
+
         self.build_assets()
         self.build_deals()
         self.build_index()
@@ -633,10 +703,12 @@ class Builder:
         self.build_compare()
         self.build_sitemap()
 
+        written = {p.relative_to(SITE).as_posix() for p in SITE.rglob("*") if p.is_file()}
+        written.add("_manifest.json")
+
         # Hard self-check. Colliding slugs used to overwrite each other's pages
         # while the sitemap still listed both URLs, so the site shipped 404s.
         # Fail the build instead of shipping a sitemap that lies.
-        written = {p.relative_to(SITE).as_posix() for p in SITE.rglob("*.html")}
         expected = {f"deal/{slug}.html" for slug, _, _ in self.deal_index}
         offers_total = self.data["stats"]["offers_total"]
         if len(expected) != offers_total:
@@ -655,7 +727,32 @@ class Builder:
                 path += "index.html"
             if path not in written:
                 raise RuntimeError(f"sitemap lists a page that was not built: {url}")
-        return {"pages": len(written), "providers": len(self.providers), "offers": offers_total}
+
+        # Retire pages this build no longer produces.
+        removed = []
+        for rel in sorted(previous - written):
+            target = SITE / rel
+            if target.is_file():
+                target.unlink()
+                removed.append(rel)
+        for name in ("deal", "provider", "category", "assets"):
+            folder = SITE / name
+            if folder.is_dir() and not any(folder.iterdir()):
+                folder.rmdir()
+
+        manifest_path.write_text(
+            json.dumps(
+                {"generated_at": self.generated_at, "files": sorted(written)},
+                indent=2, ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        return {
+            "pages": len(written) - 1,
+            "providers": len(self.providers),
+            "offers": offers_total,
+            "retired": len(removed),
+        }
 
 
 def main() -> int:

@@ -28,7 +28,7 @@ TYPE:config PROJECT:couponscout LANG:zh
   Roborock | Home Appliances
 
 ::MODULE{FIELDS|title:每条优惠提取什么}
-  title price currency list_price discount_percent deal_class offer_url valid_until source_url fetched_at
+  title price currency list_price discount_percent deal_class image offer_url valid_until source_url fetched_at
 ::RULE{抓不到 price⇒这条不写 price 字段 也不写进结构化数据 不许拿估的填}
 ::RULE{valid_until 已过⇒标记过期或下架 不许留着冒充有效}
 ::RULE{抓不到 valid_until⇒不写该字段 不许编一个到期日}

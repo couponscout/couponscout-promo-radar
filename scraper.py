@@ -248,6 +248,20 @@ def _url_of(node) -> str | None:
     return None
 
 
+def _image_of(node) -> str | None:
+    """First real image URL on a schema.org node. schema.org allows str, list or ImageObject."""
+    if not isinstance(node, dict):
+        return None
+    for candidate in _as_list(node.get("image")):
+        if isinstance(candidate, str) and candidate.startswith("http"):
+            return candidate
+        if isinstance(candidate, dict):
+            inner = candidate.get("url") or candidate.get("contentUrl")
+            if isinstance(inner, str) and inner.startswith("http"):
+                return inner
+    return None
+
+
 def offers_from_jsonld(html: str, source_url: str, provider: str, fetched_at: str,
                        sale_scoped: bool = False) -> list[dict]:
     """Pull schema.org Product/Offer pairs out of a page.
@@ -296,6 +310,7 @@ def offers_from_jsonld(html: str, source_url: str, provider: str, fetched_at: st
             "price": price,
             "currency": node.get("priceCurrency"),
             "list_price": list_price,
+            "image": _image_of(product) or _image_of(node),
             "offer_url": url,
             "valid_until": node.get("priceValidUntil"),
             "source_url": source_url,
@@ -335,12 +350,15 @@ def offers_from_shopify(payload: dict, origin: str, source_url: str, provider: s
             # would produce "Name - Name" in every listing.
             if variant_title and variant_title not in ("Default Title", title):
                 title = f"{title} - {variant_title}"
+            images = product.get("images") or []
+            image = images[0].get("src") if images and isinstance(images[0], dict) else None
             results.append({
                 "provider": provider,
                 "title": title,
                 "price": price,
                 "currency": settings.get("_currency", "USD"),
                 "list_price": compare if discounted else None,
+                "image": image if isinstance(image, str) and image.startswith("http") else None,
                 "offer_url": product_url,
                 "valid_until": None,
                 "source_url": source_url,
