@@ -1,0 +1,61 @@
+name: update
+
+# Rebuilds the site every 6 hours and commits the fresh dataset back to the repo.
+# Every commit is a timestamped record that this domain is actively maintained,
+# which is the whole point: a deal site's value is its uptime and its freshness.
+#
+# Public repositories get unlimited GitHub Actions minutes, so this costs nothing.
+# No API keys, no secrets, no third-party services. Pure Python standard library.
+
+on:
+  schedule:
+    # Every 6 hours, on the hour (UTC). GitHub may delay scheduled runs under load.
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".ilang/site.ilang"
+      - "scraper.py"
+      - "build.py"
+      - "templates/**"
+      - ".github/workflows/update.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Scrape public brand data into data/offers.json
+        run: python scraper.py
+
+      - name: Build the static site into site/
+        run: python build.py
+
+      - name: Commit the refreshed dataset and site
+        run: |
+          git config user.name  "promo-radar-bot"
+          git config user.email "promo-radar-bot@users.noreply.github.com"
+          git add data/offers.json site
+          if git diff --staged --quiet; then
+            echo "No change this run - nothing to commit."
+          else
+            git commit -m "data: refresh offers $(date -u +'%Y-%m-%dT%H:%MZ')"
+            git push
+          fi

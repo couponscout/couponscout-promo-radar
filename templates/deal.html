@@ -1,0 +1,51 @@
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a href="/">All deals</a>
+  <span class="sep">/</span>
+  <a href="$provider_url">$provider</a>
+  <span class="sep">/</span>
+  <span>$title</span>
+</nav>
+
+<section class="deal-head">
+  <div class="deal-tags">
+    <span class="prov-cat">$category</span>
+    <span class="badge $class_slug">$class_label</span>
+  </div>
+  <h1>$title</h1>
+  <p class="deal-at">at $provider</p>
+
+  <div class="price-box">
+    <span class="price-now">$price</span>
+    <span class="price-was">$list_price</span>
+    <span class="price-pct">$pct</span>
+  </div>
+
+  <a class="cta" href="$offer_url" rel="noopener nofollow" target="_blank">
+    Check this price at $offer_host &rarr;
+  </a>
+  <p class="cta-note">Opens the brand's own page in a new tab. We do not take payment and we do not
+  sell anything ourselves.</p>
+</section>
+
+<section class="block">
+  <h2>What kind of listing this is</h2>
+  <p class="fine">$class_note</p>
+</section>
+
+<section class="block">
+  <h2>Where this price came from</h2>
+  <ul class="facts">
+    <li><span class="k">Product page</span><a class="v" href="$offer_url" rel="noopener nofollow" target="_blank">$offer_url</a></li>
+    <li><span class="k">Read from</span><a class="v" href="$source_url" rel="noopener nofollow" target="_blank">$source_url</a></li>
+    <li><span class="k">Price captured</span><span class="v"><time datetime="$fetched_iso">$fetched</time></span></li>
+    $valid_until_row
+  </ul>
+  <p class="provenance">$how</p>
+</section>
+
+<section class="block">
+  <h2>Before you buy</h2>
+  <p class="fine">A price is only accurate as of the timestamp above. Brands change prices, end
+  promotions and sell out without warning, so confirm the number on $source_host before you pay.
+  If this listing looks wrong, treat the brand's page as correct, not this one.</p>
+</section>

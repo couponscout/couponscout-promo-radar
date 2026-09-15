@@ -1,0 +1,38 @@
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a href="/">All deals</a>
+  <span class="sep">/</span>
+  <span>$name</span>
+</nav>
+
+<section class="prov-head">
+  <span class="prov-cat">$category</span>
+  <h1>$name</h1>
+  <p class="prov-note">$status_note</p>
+  <ul class="facts">
+    <li><span class="k">Official store</span><a class="v" href="$homepage" rel="noopener nofollow" target="_blank">$homepage</a></li>
+    $promo_row
+    <li><span class="k">Data source used</span><span class="v">$strategy</span></li>
+    <li><span class="k">Last checked</span><span class="v"><time datetime="$fetched_iso">$fetched</time></span></li>
+  </ul>
+</section>
+
+<section class="block">
+  <div class="block-head">
+    <h2>$cards_heading</h2>
+  </div>
+  <div class="grid grid-offers">
+$cards
+  </div>
+</section>
+
+<section class="block">
+  <h2>How this page was produced</h2>
+  <p class="fine">
+    Nothing on this page was written or adjusted by hand. A scheduled job reads $name's own
+    public pages - its product feed where one exists, and the schema.org offer data on its own
+    product pages otherwise - and rebuilds this page every 6 hours. Where the brand publishes a
+    reference price we can show a real percentage. Where it only files an item under its own sale
+    page, we show the real price and label it as exactly that, with no percentage attached. If the
+    brand stops publishing this data, this page shrinks rather than fills up.
+  </p>
+</section>

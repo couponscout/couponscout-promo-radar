@@ -1,0 +1,69 @@
+ILANG
+TYPE:config PROJECT:couponscout LANG:zh
+
+::STATE{@SITE, brand:CouponScout, niche:consumer brand coupons - apparel beauty tech accessories home appliances, domain:couponscout.pages.dev, locale:en-US, currency:USD}
+
+::MODULE{PROVIDERS|title:抓哪几家 这里改了站就变}
+  Nike | https://www.nike.com/ | https://www.nike.com/w/sale-3yaep |
+  adidas | https://www.adidas.com/us | https://www.adidas.com/us/sale |
+  Fenty Beauty | https://fentybeauty.com/ | https://fentybeauty.com/collections/sale |
+  Belkin | https://www.belkin.com/ | https://www.belkin.com/sale |
+  Logitech | https://www.logitech.com/en-us | https://www.logitech.com/en-us/shop/deals |
+  ESR | https://www.esrtech.com/ | https://www.esrtech.com/collections/sale |
+  Peak Design | https://www.peakdesign.com/ | https://www.peakdesign.com/global/collections/marketplace |
+  ECOVACS | https://www.ecovacs.com/us | https://www.ecovacs.com/us/shop/promotion |
+  Shark | https://www.sharkninja.com/ | https://www.sharkninja.com/sales-offers |
+  Roborock | https://us.roborock.com/ | https://us.roborock.com/pages/roborock-trade-up |
+
+::MODULE{CATEGORIES|title:厂商归到哪个品类 用于站点分组和导航}
+  Nike | Apparel
+  adidas | Apparel
+  Fenty Beauty | Beauty
+  Belkin | Tech Accessories
+  Logitech | Tech Accessories
+  ESR | Tech Accessories
+  Peak Design | Tech Accessories
+  ECOVACS | Home Appliances
+  Shark | Home Appliances
+  Roborock | Home Appliances
+
+::MODULE{FIELDS|title:每条优惠提取什么}
+  title price currency list_price discount_percent deal_class offer_url valid_until source_url fetched_at
+::RULE{抓不到 price⇒这条不写 price 字段 也不写进结构化数据 不许拿估的填}
+::RULE{valid_until 已过⇒标记过期或下架 不许留着冒充有效}
+::RULE{抓不到 valid_until⇒不写该字段 不许编一个到期日}
+::RULE{discount_percent 只能由 price 和 list_price 算出来 没有 list_price 就不写这个字段}
+::RULE{deal_class 只有两个合法值 verified_discount 和 sale_page 不许造第三个}
+::RULE{deal_class=verified_discount⇒页面自己给了划线价 折扣是算出来的}
+::RULE{deal_class=sale_page⇒这条读自厂商自己划定的促销页 只报真实价格 不报折扣百分比 不许拿原价倒推一个折扣出来}
+::BOUNDARY{never:编优惠 编价格 编佣金|scope:permanent}
+
+::MODULE{SETTINGS|title:抓取行为 越省越稳}
+  user_agent: PromoRadarBot/1.0 (+https://couponscout.pages.dev/bot)
+  request_timeout: 25
+  request_delay: 1.2
+  max_pages_per_provider: 14
+  max_offers_per_provider: 40
+  min_discount_percent: 5
+  discount_only: true
+  allow_sale_page_listings: true
+  sale_path_hints: /sale,/sales,/deals,/deal,/promotion,/promotions,/promo,/offers,/offer,/clearance,/outlet,/discount,/collections/sale,/collections/deals,/marketplace,trade-up
+  obey_robots: true
+  shopify_feed_limit: 250
+::RULE{allow_sale_page_listings=true⇒厂商自己划定的促销页算促销证据 从那种页面读到的真实价格可以列 但必须标 deal_class=sale_page 且不写 discount_percent}
+::RULE{allow_sale_page_listings=false⇒只列算得出折扣的 站会瘦很多 但一行都不多}
+::RULE{sale_path_hints 只用来判断这个 URL 是不是厂商自己的促销页 命中才敢标 sale_page 不许凭感觉标}
+::RULE{同一个商品 同一个价格 同一个链接 只留一行 重复的丢掉}
+
+::MODULE{RENDER|title:渲染规则}
+  site_title: CouponScout
+  site_tagline: Verified brand promo pages and live discounts, refreshed every 6 hours.
+  items_per_page: 60
+  show_source_url: true
+  show_fetched_at: true
+  nav_order: Apparel,Beauty,Tech Accessories,Home Appliances
+
+::MODULE{POLICY|title:站点自己的规矩}
+  ::RULE{每条优惠必须带 source_url 指向被抓的公开页面}
+  ::RULE{只抓公开的 sitemap feed 和厂商官方优惠页 遵守 robots.txt 不绕反爬 不抓登录后内容}
+  ::BOUNDARY{never:品牌词竞价 cookie 注入 自买自推|scope:permanent}

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="CouponScout">
+  <rect width="32" height="32" rx="7" fill="#101b2d"/>
+  <circle cx="12" cy="12" r="2.6" fill="none" stroke="#c8281c" stroke-width="2.4"/>
+  <circle cx="20.5" cy="20.5" r="2.6" fill="none" stroke="#c8281c" stroke-width="2.4"/>
+  <line x1="22" y1="10" x2="10" y2="22" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
+</svg>
