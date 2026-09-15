@@ -1,0 +1,13 @@
+# Normalise line endings. This repo is built on Linux CI and edited on Windows,
+# and without this every rebuild shows phantom whole-file diffs.
+* text=auto eol=lf
+
+# Generated output: keep it as plain text, but do not try to diff the tree.
+site/*.html   text eol=lf
+site/**/*.html text eol=lf
+sitemap.xml   text eol=lf
+robots.txt    text eol=lf
+
+*.png binary
+*.jpg binary
+*.webp binary
