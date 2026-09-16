@@ -62,7 +62,7 @@ TYPE:config PROJECT:couponscout LANG:zh
   show_source_url: true
   show_fetched_at: true
   nav_order: Apparel,Beauty,Tech Accessories,Home Appliances
-  repo_url:
+  repo_url: https://github.com/couponscout/couponscout-promo-radar
   repo_label: Source on GitHub
 ::RULE{repo_url 为空⇒页脚不渲染这条链接 不许填占位地址 不许写一个还不存在的仓库}
 ::RULE{repo_url 有值⇒页脚渲染一条指向它的链接 地址必须真实可点开}
