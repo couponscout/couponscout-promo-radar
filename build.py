@@ -112,6 +112,26 @@ def write(path: Path, content: str) -> None:
         pass
 
 
+def page_url(url: str) -> str:
+    """Drop the .html extension from an internal page URL.
+
+    Cloudflare Pages answers /foo.html with a 308 redirect to /foo, so the
+    extensionless form is the address that actually serves the page. Canonical
+    tags, internal links and the sitemap all have to name that one - leaving
+    .html in costs a redirect hop on every crawl and makes the sitemap advertise
+    URLs that are not the ones being served. Cloudflare offers no switch for
+    this, so the site has to emit the clean form itself.
+
+    Only URLs go through here. File paths keep their .html, because that is how
+    the pages are stored on disk.
+    """
+    if url.endswith("/index.html"):
+        return url[: -len("index.html")]
+    if url.endswith(".html"):
+        return url[: -len(".html")]
+    return url
+
+
 # --------------------------------------------------------------------------
 # page builders
 # --------------------------------------------------------------------------
@@ -174,9 +194,9 @@ class Builder:
         items = [f'<a class="navlink{" active" if active == "all" else ""}" href="/">All deals</a>']
         for cat in self.nav:
             cls = "navlink active" if active == cat else "navlink"
-            items.append(f'<a class="{cls}" href="/category/{slugify(cat)}.html">{esc(cat)}</a>')
+            items.append(f'<a class="{cls}" href="{page_url(f"/category/{slugify(cat)}.html")}">{esc(cat)}</a>')
         items.append(
-            f'<a class="navlink{" active" if active == "compare" else ""}" href="/compare.html">Compare brands</a>'
+            f'<a class="navlink{" active" if active == "compare" else ""}" href="{page_url("/compare.html")}">Compare brands</a>'
         )
         return "".join(items)
 
@@ -240,7 +260,7 @@ class Builder:
             img = '<span class="offer-img offer-img-empty" aria-hidden="true"></span>'
         return render(
             "card_offer.html",
-            url=f"/deal/{deal_slug(provider['name'], offer)}.html",
+            url=page_url(f"/deal/{deal_slug(provider['name'], offer)}.html"),
             img=img,
             title=esc(offer.get("title") or provider["name"]),
             provider=esc(provider["name"]),
@@ -266,7 +286,7 @@ class Builder:
             meta = "Official promo page linked &middot; no machine-readable offer data"
         return render(
             "card_provider.html",
-            url=f"/provider/{slugify(provider['name'])}.html",
+            url=page_url(f"/provider/{slugify(provider['name'])}.html"),
             name=esc(provider["name"]),
             category=esc(provider["category"]),
             meta=meta,
@@ -333,7 +353,7 @@ class Builder:
                     "numberOfItems": len(top),
                     "itemListElement": [
                         {"@type": "ListItem", "position": i + 1,
-                         "url": f"{self.base}/deal/{deal_slug(p['name'], o)}.html",
+                         "url": page_url(f"{self.base}/deal/{deal_slug(p['name'], o)}.html"),
                          "name": f"{o.get('title')} - {p['name']}"}
                         for i, (p, o) in enumerate(top[:30])
                     ],
@@ -420,7 +440,7 @@ class Builder:
             {"@type": "BreadcrumbList", "itemListElement": [
                 {"@type": "ListItem", "position": 1, "name": "Home", "item": f"{self.base}/"},
                 {"@type": "ListItem", "position": 2, "name": name,
-                 "item": f"{self.base}/provider/{slugify(name)}.html"},
+                 "item": page_url(f"{self.base}/provider/{slugify(name)}.html")},
             ]},
             {"@type": "Organization", "name": name, "url": provider["homepage"]},
         ]
@@ -429,7 +449,7 @@ class Builder:
                 "@type": "Product",
                 "name": f"{name} discounted products",
                 "brand": {"@type": "Brand", "name": name},
-                "url": f"{self.base}/provider/{slugify(name)}.html",
+                "url": page_url(f"{self.base}/provider/{slugify(name)}.html"),
                 "offers": offer_block,
             }
             lead_image = next((o.get("image") for o in offers if o.get("image")), None)
@@ -468,7 +488,7 @@ class Builder:
                                     if offers else
                                     (f"{name} publishes no machine-readable offer data. "
                                      f"Direct link to the official promo page instead."),
-                         canonical=f"{self.base}/provider/{slugify(name)}.html",
+                         canonical=page_url(f"{self.base}/provider/{slugify(name)}.html"),
                          content=content, jsonld={"@context": "https://schema.org", "@graph": graph},
                          active=provider["category"],
                          og_image=next((o.get("image") for o in offers if o.get("image")), None)))
@@ -490,13 +510,13 @@ class Builder:
                 {"@type": "BreadcrumbList", "itemListElement": [
                     {"@type": "ListItem", "position": 1, "name": "Home", "item": f"{self.base}/"},
                     {"@type": "ListItem", "position": 2, "name": cat,
-                     "item": f"{self.base}/category/{slugify(cat)}.html"},
+                     "item": page_url(f"{self.base}/category/{slugify(cat)}.html")},
                 ]},
                 {"@type": "ItemList", "name": f"{cat} brand deals",
                  "numberOfItems": len(group),
                  "itemListElement": [
                      {"@type": "ListItem", "position": i + 1, "name": p["name"],
-                      "url": f"{self.base}/provider/{slugify(p['name'])}.html"}
+                      "url": page_url(f"{self.base}/provider/{slugify(p['name'])}.html")}
                      for i, p in enumerate(group)
                  ]},
             ],
@@ -505,7 +525,7 @@ class Builder:
               self.shell(title=f"{cat} brand deals & promo pages ({self.month}) - {self.render_cfg['site_title']}",
                          description=f"{len(group)} {cat.lower()} brands tracked, {total} live discounts, "
                                      f"rebuilt every 6 hours from public brand data.",
-                         canonical=f"{self.base}/category/{slugify(cat)}.html",
+                         canonical=page_url(f"{self.base}/category/{slugify(cat)}.html"),
                          content=content, jsonld=jsonld, active=cat))
 
     def build_deals(self) -> None:
@@ -522,7 +542,7 @@ class Builder:
         list_price = money(offer.get("list_price"), offer.get("currency"))
         pct = offer.get("discount_percent")
         deal_class = offer.get("deal_class") or ""
-        url = f"{self.base}/deal/{slug}.html"
+        url = page_url(f"{self.base}/deal/{slug}.html")
 
         if deal_class == "verified_discount":
             class_label = "Verified discount"
@@ -565,7 +585,7 @@ class Builder:
                 {"@type": "BreadcrumbList", "itemListElement": [
                     {"@type": "ListItem", "position": 1, "name": "Home", "item": f"{self.base}/"},
                     {"@type": "ListItem", "position": 2, "name": provider["name"],
-                     "item": f"{self.base}/provider/{slugify(provider['name'])}.html"},
+                     "item": page_url(f"{self.base}/provider/{slugify(provider['name'])}.html")},
                     {"@type": "ListItem", "position": 3, "name": str(offer.get("title"))[:70], "item": url},
                 ]},
                 product_node,
@@ -582,7 +602,7 @@ class Builder:
             title=esc(offer.get("title") or provider["name"]),
             media=media,
             provider=esc(provider["name"]),
-            provider_url=f"/provider/{slugify(provider['name'])}.html",
+            provider_url=page_url(f"/provider/{slugify(provider['name'])}.html"),
             category=esc(provider["category"]),
             price=esc(price) or "see brand page",
             list_price=esc(list_price),
@@ -628,7 +648,7 @@ class Builder:
             rows.append(render(
                 "row_compare.html",
                 name=esc(p["name"]),
-                url=f"/provider/{slugify(p['name'])}.html",
+                url=page_url(f"/provider/{slugify(p['name'])}.html"),
                 category=esc(p["category"]),
                 offers=str(n),
                 best=f"{best:g}%" if best else "&mdash;",
@@ -651,13 +671,13 @@ class Builder:
                 {"@type": "BreadcrumbList", "itemListElement": [
                     {"@type": "ListItem", "position": 1, "name": "Home", "item": f"{self.base}/"},
                     {"@type": "ListItem", "position": 2, "name": "Compare brands",
-                     "item": f"{self.base}/compare.html"},
+                     "item": page_url(f"{self.base}/compare.html")},
                 ]},
                 {"@type": "ItemList", "name": "Brands tracked",
                  "numberOfItems": len(self.providers),
                  "itemListElement": [
                      {"@type": "ListItem", "position": i + 1, "name": p["name"],
-                      "url": f"{self.base}/provider/{slugify(p['name'])}.html"}
+                      "url": page_url(f"{self.base}/provider/{slugify(p['name'])}.html")}
                      for i, p in enumerate(self.providers)
                  ]},
             ],
@@ -667,7 +687,7 @@ class Builder:
                          description="Side-by-side view of every brand tracked: live discount count, "
                                      "best discount and lowest price, plus whether the brand publishes "
                                      "machine-readable offer data at all.",
-                         canonical=f"{self.base}/compare.html", content=content,
+                         canonical=page_url(f"{self.base}/compare.html"), content=content,
                          jsonld=jsonld, active="compare"))
 
     def build_assets(self) -> None:
@@ -678,13 +698,14 @@ class Builder:
 
     def build_sitemap(self) -> None:
         urls: list[tuple[str, str]] = [(f"{self.base}/", self.generated_at),
-                                       (f"{self.base}/compare.html", self.generated_at)]
+                                       (page_url(f"{self.base}/compare.html"), self.generated_at)]
         for cat in self.categories:
-            urls.append((f"{self.base}/category/{slugify(cat)}.html", self.generated_at))
+            urls.append((page_url(f"{self.base}/category/{slugify(cat)}.html"), self.generated_at))
         for p in self.providers:
-            urls.append((f"{self.base}/provider/{slugify(p['name'])}.html", self.generated_at))
+            urls.append((page_url(f"{self.base}/provider/{slugify(p['name'])}.html"), self.generated_at))
         for slug, _, offer in getattr(self, "deal_index", []):
-            urls.append((f"{self.base}/deal/{slug}.html", offer.get("fetched_at") or self.generated_at))
+            urls.append((page_url(f"{self.base}/deal/{slug}.html"),
+                         offer.get("fetched_at") or self.generated_at))
 
         entries = "\n".join(
             f"  <url>\n    <loc>{esc(u)}</loc>\n    <lastmod>{esc(d)}</lastmod>\n"
@@ -751,9 +772,13 @@ class Builder:
             )
         sitemap = (SITE / "sitemap.xml").read_text(encoding="utf-8")
         for url in re.findall(r"<loc>(.*?)</loc>", sitemap):
-            path = url.split(self.site["domain"], 1)[-1].lstrip("/") or "index.html"
-            if path.endswith("/"):
+            # Sitemap URLs are extensionless (see page_url), so map them back to
+            # the .html file that has to exist for the URL to actually serve.
+            path = url.split(self.site["domain"], 1)[-1].lstrip("/")
+            if not path or path.endswith("/"):
                 path += "index.html"
+            elif not path.endswith(".html"):
+                path += ".html"
             if path not in written:
                 raise RuntimeError(f"sitemap lists a page that was not built: {url}")
 
