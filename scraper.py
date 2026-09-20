@@ -321,19 +321,27 @@ def offers_from_jsonld(html: str, source_url: str, provider: str, fetched_at: st
 
 
 def _variant_already_in_title(title: str, variant_title: str) -> bool:
-    """True when appending the variant would only repeat a tail the title has.
+    """True when appending the variant would only repeat something the title has.
 
     Stores publish this two ways: the bare name in product.title with the option
     in variant.title, or the option already baked into product.title. Appending in
-    the second case yields "Name - Black - Black". The match is only honoured at a
-    separator boundary, so a title ending in "Light Black" is not mistaken for the
-    variant "Black".
+    the second case yields "Name - Black - Black".
+
+    The option is not always a tail, which is what the earlier suffix-only test
+    missed: Roborock ships "F25 XT Wet and Dry Vacuum Cleaner" with variant
+    "F25 XT", and "S8 Max Ultra-White-trade in-$500" with variant "White". So the
+    option is also looked for as a whole token anywhere in the title.
+
+    Word boundaries are what keep short options honest: variant "S" must not
+    match the "s" inside "ESR", and variant "M" must not match the "m" in "Max".
     """
     t = (title or "").strip().lower()
     v = (variant_title or "").strip().lower()
     if not v or v == "default title":
         return True
     if t == v:
+        return True
+    if re.search(r"(?<![a-z0-9])" + re.escape(v) + r"(?![a-z0-9])", t):
         return True
     if not t.endswith(v):
         return False
