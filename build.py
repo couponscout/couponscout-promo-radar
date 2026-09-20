@@ -96,9 +96,20 @@ def pretty_date(iso: str | None) -> str:
     return f"{MONTHS[dt.month - 1]} {dt.day}, {dt.year}"
 
 
+# Every path this run actually wrote. run() needs to tell "produced by this build"
+# apart from "left over from an earlier build"; scanning site/ instead would count
+# the stale files too, which made `previous - written` always empty and retired
+# nothing at all.
+_PRODUCED: set[str] = set()
+
+
 def write(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+    try:
+        _PRODUCED.add(path.relative_to(SITE).as_posix())
+    except ValueError:
+        pass
 
 
 # --------------------------------------------------------------------------
@@ -663,6 +674,7 @@ class Builder:
         (SITE / "assets").mkdir(parents=True, exist_ok=True)
         shutil.copyfile(TEMPLATES / "style.css", SITE / "assets" / "style.css")
         shutil.copyfile(TEMPLATES / "favicon.svg", SITE / "assets" / "favicon.svg")
+        _PRODUCED.update({"assets/style.css", "assets/favicon.svg"})
 
     def build_sitemap(self) -> None:
         urls: list[tuple[str, str]] = [(f"{self.base}/", self.generated_at),
@@ -694,6 +706,10 @@ class Builder:
         the new build. That keeps the output directory cheap to update in CI,
         avoids wiping anything a human might have put there, and makes the
         "these pages disappeared" case explicit instead of silent.
+
+        "What this build produced" comes from the write() helper's own record, not
+        from scanning site/ - a scan would include last build's files and the
+        diff would always be empty.
         """
         SITE.mkdir(parents=True, exist_ok=True)
         manifest_path = SITE / "_manifest.json"
@@ -708,6 +724,7 @@ class Builder:
             # so pre-existing orphans get cleaned up rather than lingering forever.
             previous = {p.relative_to(SITE).as_posix() for p in SITE.rglob("*") if p.is_file()}
 
+        _PRODUCED.clear()
         self.build_assets()
         self.build_deals()
         self.build_index()
@@ -715,7 +732,7 @@ class Builder:
         self.build_compare()
         self.build_sitemap()
 
-        written = {p.relative_to(SITE).as_posix() for p in SITE.rglob("*") if p.is_file()}
+        written = set(_PRODUCED)
         written.add("_manifest.json")
 
         # Hard self-check. Colliding slugs used to overwrite each other's pages

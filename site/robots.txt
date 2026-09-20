@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://couponscout.pages.dev/sitemap.xml
+Sitemap: https://couponscout.store/sitemap.xml

@@ -1,7 +1,7 @@
 ILANG
 TYPE:config PROJECT:couponscout LANG:zh
 
-::STATE{@SITE, brand:CouponScout, niche:consumer brand coupons - apparel beauty tech accessories home appliances, domain:couponscout.pages.dev, locale:en-US, currency:USD}
+::STATE{@SITE, brand:CouponScout, niche:consumer brand coupons - apparel beauty tech accessories home appliances, domain:couponscout.store, locale:en-US, currency:USD}
 
 ::MODULE{PROVIDERS|title:抓哪几家 这里改了站就变}
   Nike | https://www.nike.com/ | https://www.nike.com/w/sale-3yaep |

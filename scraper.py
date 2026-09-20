@@ -320,6 +320,27 @@ def offers_from_jsonld(html: str, source_url: str, provider: str, fetched_at: st
     return results
 
 
+def _variant_already_in_title(title: str, variant_title: str) -> bool:
+    """True when appending the variant would only repeat a tail the title has.
+
+    Stores publish this two ways: the bare name in product.title with the option
+    in variant.title, or the option already baked into product.title. Appending in
+    the second case yields "Name - Black - Black". The match is only honoured at a
+    separator boundary, so a title ending in "Light Black" is not mistaken for the
+    variant "Black".
+    """
+    t = (title or "").strip().lower()
+    v = (variant_title or "").strip().lower()
+    if not v or v == "default title":
+        return True
+    if t == v:
+        return True
+    if not t.endswith(v):
+        return False
+    head = t[: len(t) - len(v)]
+    return not head or head[-1] in " -\u2013\u2014,|/(["
+
+
 def offers_from_shopify(payload: dict, origin: str, source_url: str, provider: str,
                         fetched_at: str, settings: dict,
                         sale_scoped: bool = False) -> list[dict]:
@@ -346,9 +367,10 @@ def offers_from_shopify(payload: dict, origin: str, source_url: str, provider: s
                 continue
             title = product.get("title") or provider
             variant_title = variant.get("title")
-            # Many stores repeat the product title as the variant title; appending it
-            # would produce "Name - Name" in every listing.
-            if variant_title and variant_title not in ("Default Title", title):
+            # Stores differ: some keep the bare name in product.title with the
+            # option in variant.title, others bake the option into product.title as
+            # well. Appending in the second case gives "Name - Black - Black".
+            if not _variant_already_in_title(title, variant_title):
                 title = f"{title} - {variant_title}"
             images = product.get("images") or []
             image = images[0].get("src") if images and isinstance(images[0], dict) else None
