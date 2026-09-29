@@ -188,6 +188,7 @@ class Builder:
             og_card=og_card,
             locale=esc(self.site["locale"]),
             jsonld=blocks,
+            ad_head=self.ad_head(),
         )
 
     def nav_html(self, active: str = "") -> str:
@@ -230,6 +231,47 @@ class Builder:
             locale=esc(self.site["locale"]),
             lang=esc(str(self.site["locale"]).split("-")[0]),
         )
+
+    # -- advertising slots -------------------------------------------------
+    # The operator pastes a network's own snippet into .ilang/site.ilang, one
+    # value per placement, and it is injected verbatim where the network says.
+    # Nothing here invents a tag, reshapes it, or ships a placeholder ad: an
+    # empty value means no slot is emitted at all, so the live HTML is honest
+    # about whether ads actually exist yet.
+    def ad_slot(self, name: str, label: str = "") -> str:
+        code = str(self.render_cfg.get(name) or "").strip()
+        if not code:
+            return ""
+        heading = f'<p class="ad-label">{esc(label)}</p>' if label else ""
+        return (
+            f'<aside class="ad-slot" aria-label="Advertisement">'
+            f'{heading}<div class="ad-unit">{code}</div></aside>'
+        )
+
+    def ad_head(self) -> str:
+        """Snippet that belongs in <head> (e.g. a loader script)."""
+        return str(self.render_cfg.get("ad_head_code") or "").strip()
+
+    def ad_status_phrase(self) -> str:
+        networks = str(self.render_cfg.get("ad_networks") or "").strip()
+        if not networks:
+            return (
+                "As of the last update of this page the site carried no third-party advertising "
+                "code. This section describes how advertising will be handled once it is added."
+            )
+        return f"This site displays advertising supplied by: {networks}."
+
+    def analytics_phrase(self) -> str:
+        analytics = str(self.render_cfg.get("analytics") or "").strip().lower()
+        if not analytics or analytics == "none":
+            return "This site runs no analytics product and no visitor-tracking script of its own."
+        return f"This site uses {analytics} to measure aggregate traffic. It is not used to build a profile of you."
+
+    def brand_list_phrase(self) -> str:
+        names = [p["name"] for p in self.providers]
+        if len(names) <= 1:
+            return "".join(names)
+        return ", ".join(names[:-1]) + " and " + names[-1]
 
     # -- cards -------------------------------------------------------------
     def offer_card(self, offer: dict, provider: dict) -> str:
@@ -376,6 +418,7 @@ class Builder:
             deal_count=str(len(top)),
             month=esc(self.month),
             faq=faq_html,
+            ad_mid=self.ad_slot("ad_slot_index_mid", "Advertisement"),
             disclaimer=esc(
                 "Prices are read from public brand sources and can change at any time. "
                 "This site is independent and not affiliated with the brands listed."
@@ -601,6 +644,7 @@ class Builder:
             "deal.html",
             title=esc(offer.get("title") or provider["name"]),
             media=media,
+            ad_mid=self.ad_slot("ad_slot_deal_mid", "Advertisement"),
             provider=esc(provider["name"]),
             provider_url=page_url(f"/provider/{slugify(provider['name'])}.html"),
             category=esc(provider["category"]),
@@ -690,6 +734,118 @@ class Builder:
                          canonical=page_url(f"{self.base}/compare.html"), content=content,
                          jsonld=jsonld, active="compare"))
 
+    def build_static_pages(self) -> None:
+        """About, privacy, contact and the 404 page.
+
+        These are the pages an ad network's reviewer looks for and the ones the
+        site needs to keep regardless of what the scraper finds. They are built
+        from config, so the operator's own name, e-mail and ad networks appear
+        exactly as configured - never invented.
+        """
+        email = str(self.render_cfg.get("contact_email") or "").strip()
+        if not email or email == "REPLACE_ME_EMAIL":
+            # No real address was configured. Do not print a fake one; the
+            # issue tracker is the working channel either way.
+            contact_email = ""
+            email_li = ""
+            email_note = (
+                'The issue tracker is the working channel for this site. '
+                'A direct e-mail address is not published yet.'
+            )
+        else:
+            contact_email = email
+            email_li = (
+                f'<li><span class="k">Email</span><span class="v">'
+                f'<a href="mailto:{esc(email)}">{esc(email)}</a></span></li>'
+            )
+            email_note = "Both channels above are monitored."
+
+        repo_url = str(self.render_cfg.get("repo_url") or "").strip()
+        issues_url = f"{repo_url.rstrip('/')}/issues" if repo_url else ""
+
+        # --- privacy -------------------------------------------------------
+        privacy_body = render(
+            "privacy.html",
+            site_title=esc(self.render_cfg["site_title"]),
+            operator=esc(self.render_cfg.get("operator") or "an independent developer"),
+            domain=esc(self.site["domain"]),
+            host_provider=esc(self.render_cfg.get("host_provider") or "our web host"),
+            analytics_clause=esc(self.analytics_phrase()),
+            ad_networks_clause=esc(self.ad_status_phrase()),
+            ad_status_clause=esc(
+                "This page is updated whenever the advertising configuration changes, so what "
+                "you read here matches what the site actually loads."
+            ),
+            updated=esc(pretty_date(self.generated_at)),
+            updated_iso=esc(self.generated_at),
+        )
+        write(SITE / "privacy.html",
+              self.shell(title=f"Privacy policy - {self.render_cfg['site_title']}",
+                         description="What this site does with data, including how third-party "
+                                     "advertising works here. No accounts, no first-party tracking cookies.",
+                         canonical=f"{self.base}/privacy", content=privacy_body))
+
+        # --- about ---------------------------------------------------------
+        if str(self.render_cfg.get("ad_networks") or "").strip():
+            funding_status = (
+                "Ads come from the networks named in the privacy policy and never influence what "
+                "is listed: listings are produced by the scraper from brand data, and no brand pays "
+                "to appear or to rank higher."
+            )
+        else:
+            funding_status = (
+                "No advertising code is on the site yet. When it is added, it will come from the "
+                "networks named in the privacy policy, and it will never influence what is listed: "
+                "listings are produced by the scraper from brand data, and no brand pays to appear "
+                "or to rank higher."
+            )
+        about_body = render(
+            "about.html",
+            site_title=esc(self.render_cfg["site_title"]),
+            operator=esc(self.render_cfg.get("operator") or "an independent developer"),
+            domain=esc(self.site["domain"]),
+            brand_count=str(len(self.providers)),
+            funding_status=esc(funding_status),
+            repo_clause=esc(repo_url if repo_url else "not published"),
+        )
+        write(SITE / "about.html",
+              self.shell(title=f"About {self.render_cfg['site_title']} - who runs it and how the data is made",
+                         description=f"{self.render_cfg['site_title']} is an independent price tracker for "
+                                     f"{len(self.providers)} consumer brands. Here is who runs it and how "
+                                     f"prices are read automatically from brand pages.",
+                         canonical=f"{self.base}/about", content=about_body))
+
+        # --- contact -------------------------------------------------------
+        rows = []
+        if email_li:
+            rows.append(email_li)
+        if issues_url:
+            rows.append(
+                f'<li><span class="k">Issue tracker</span><span class="v">'
+                f'<a href="{esc(issues_url)}" rel="noopener" target="_blank">{esc(issues_url)}</a></span></li>'
+            )
+        rows.append(
+            f'<li><span class="k">Operator</span><span class="v">'
+            f'{esc(self.render_cfg.get("operator") or "an independent developer")}</span></li>'
+        )
+        contact_body = render(
+            "contact.html",
+            contact_rows="".join(rows),
+            contact_note=esc(email_note),
+        )
+        write(SITE / "contact.html",
+              self.shell(title=f"Contact - {self.render_cfg['site_title']}",
+                         description="How to report a wrong price or reach the operator of this site. "
+                                     "No contact form, no stored personal data.",
+                         canonical=f"{self.base}/contact", content=contact_body))
+
+        # --- 404 -----------------------------------------------------------
+        notfound_body = render("404.html")
+        write(SITE / "404.html",
+              self.shell(title=f"Page not found - {self.render_cfg['site_title']}",
+                         description="That page does not exist on this site. Head back to the live deals.",
+                         canonical=f"{self.base}/404", content=notfound_body))
+
     def build_assets(self) -> None:
         (SITE / "assets").mkdir(parents=True, exist_ok=True)
         shutil.copyfile(TEMPLATES / "style.css", SITE / "assets" / "style.css")
@@ -698,7 +854,10 @@ class Builder:
 
     def build_sitemap(self) -> None:
         urls: list[tuple[str, str]] = [(f"{self.base}/", self.generated_at),
-                                       (page_url(f"{self.base}/compare.html"), self.generated_at)]
+                                       (page_url(f"{self.base}/compare.html"), self.generated_at),
+                                       (f"{self.base}/about", self.generated_at),
+                                       (f"{self.base}/privacy", self.generated_at),
+                                       (f"{self.base}/contact", self.generated_at)]
         for cat in self.categories:
             urls.append((page_url(f"{self.base}/category/{slugify(cat)}.html"), self.generated_at))
         for p in self.providers:
@@ -751,6 +910,7 @@ class Builder:
         self.build_index()
         self.build_providers()
         self.build_compare()
+        self.build_static_pages()
         self.build_sitemap()
 
         written = set(_PRODUCED)

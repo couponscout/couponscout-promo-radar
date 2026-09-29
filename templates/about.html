@@ -1,0 +1,71 @@
+<section class="hero hero-slim">
+  <h1>About $site_title</h1>
+  <p class="hero-lede">
+    $site_title is an independent price tracker for consumer brand promotions. It watches the
+    official sale pages and public product feeds of $brand_count brands and republishes what those
+    brands themselves published - the price, the reference price where one exists, and the exact
+    page the number was read from. It does not write prices by hand and it does not estimate them.
+  </p>
+</section>
+
+<section class="block">
+  <h2>Who runs it</h2>
+  <ul class="facts">
+    <li><span class="k">Operator</span><span class="v">$operator</span></li>
+    <li><span class="k">Site</span><span class="v">$domain - a static site, rebuilt every 6 hours</span></li>
+    <li><span class="k">Contact</span><span class="v">See the <a href="/contact">contact page</a></span></li>
+    <li><span class="k">Source code</span><span class="v">$repo_clause</span></li>
+  </ul>
+  <p class="fine">
+    This is a small, independently operated project. It is not a company storefront and it does not
+    sell anything. It is not affiliated with, endorsed by or sponsored by any brand it lists.
+  </p>
+</section>
+
+<section class="block">
+  <h2>Why the site exists</h2>
+  <p class="fine">
+    Brand sale pages are spread across ten or more separate shops, each with its own layout, its own
+    idea of what "on sale" means and its own way of hiding the real price. Comparing them by hand
+    means opening a dozen tabs and still not knowing whether the number you are looking at is a
+    genuine discount or just the normal price wearing a badge. This site does that comparison
+    mechanically, on a schedule, and shows its work: every listing names the page it was read from
+    and the moment it was read.
+  </p>
+</section>
+
+<section class="block">
+  <h2>How the data is produced</h2>
+  <p class="fine">
+    A scheduled job reads each brand's own public pages - the product feed where the brand publishes
+    one, and the schema.org offer data on its own product pages otherwise. It rebuilds the whole
+    site every 6 hours. There is no editorial step: nothing on a listing page is written or adjusted
+    by hand. Two kinds of listing exist, and they are labelled differently on purpose:
+  </p>
+  <ul class="facts">
+    <li><span class="k">Verified discount</span><span class="v">The brand published a reference price, so the percentage is arithmetic on two published numbers.</span></li>
+    <li><span class="k">On brand sale page</span><span class="v">The item sits on a page the brand itself calls a sale; we show the real price and claim no percentage, because there was no reference price to compute one from.</span></li>
+  </ul>
+  <p class="fine">
+    When a brand publishes no machine-readable offer data at all, it gets a page that links to its
+    official promo page and nothing else. That is a deliberate choice: a page that says less is
+    better than a page that invents more.
+  </p>
+</section>
+
+<section class="block">
+  <h2>How the site is funded</h2>
+  <p class="fine">
+    Advertising is the intended way this site pays for itself: ads cover the cost of the hosting and
+    the recurring data refresh, and they keep the listings free to read. $funding_status
+  </p>
+</section>
+
+<section class="block">
+  <h2>What this site does not do</h2>
+  <ul class="facts">
+    <li><span class="k">We do not sell</span><span class="v">There is no checkout. Every purchase happens on the brand's own page.</span></li>
+    <li><span class="k">We do not guarantee prices</span><span class="v">A price is only accurate as of the timestamp on the listing. Always confirm on the brand's page.</span></li>
+    <li><span class="k">We do not bid on brand names</span><span class="v">No brand-name keyword bidding, no cookie injection, no self-purchasing through our own links.</span></li>
+  </ul>
+</section>

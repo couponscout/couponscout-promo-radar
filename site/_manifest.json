@@ -1,7 +1,9 @@
 {
   "generated_at": "2026-09-29T06:40:57Z",
   "files": [
+    "404.html",
     "_manifest.json",
+    "about.html",
     "assets/favicon.svg",
     "assets/style.css",
     "category/apparel.html",
@@ -9,6 +11,7 @@
     "category/home-appliances.html",
     "category/tech-accessories.html",
     "compare.html",
+    "contact.html",
     "deal/esr-15w-3-in-1-wireless-charging-station-with-cryoboost-halolock-353103a6.html",
     "deal/esr-15w-3-in-1-wireless-charging-station-with-cryoboost-halolock-46a13c01.html",
     "deal/esr-15w-3-in-1-wireless-charging-station-with-cryoboost-halolock-72507d2b.html",
@@ -307,6 +310,7 @@
     "deal/roborock-roborock-washable-filter-x2-for-s8-maxv-ultra-s8-max-ultra-7e1bc09d.html",
     "deal/roborock-rockrobo-f25-gt-gen-2-smart-wet-dry-vacuum-with-zero-tangle--9f5f1971.html",
     "index.html",
+    "privacy.html",
     "provider/adidas.html",
     "provider/belkin.html",
     "provider/ecovacs.html",

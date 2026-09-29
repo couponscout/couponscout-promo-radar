@@ -312,6 +312,26 @@ h3 { font-size: 1rem; }
 .foot-repo::before { content: "\00b7"; color: #56657f; margin: 0 6px; }
 .foot-legal { font-size: .78rem; line-height: 1.65; color: #8695ab; margin: 0; max-width: 780px; }
 
+.foot-links { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 14px 0 0; }
+.foot-links a {
+  color: #9fb4d4; font-size: .82rem; font-weight: 600;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.foot-links a:hover { color: #dbe6f5; }
+
+/* ---------- advertising ---------- */
+
+/* A slot only exists in the HTML when the operator has actually pasted an ad
+   network's snippet into the config. There is no reserved empty box, because an
+   empty reserved box is a blank rectangle a reviewer would rightly call broken. */
+.ad-slot { margin: 26px 0; }
+.ad-label {
+  font-size: .7rem; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--ink-3); margin: 0 0 6px;
+}
+.ad-unit { max-width: 100%; overflow: hidden; text-align: center; }
+.ad-unit img, .ad-unit iframe, .ad-unit ins { max-width: 100%; }
+
 /* ---------- responsive ---------- */
 
 @media (max-width: 720px) {

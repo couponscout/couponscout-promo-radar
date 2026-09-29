@@ -64,8 +64,16 @@ TYPE:config PROJECT:couponscout LANG:zh
   nav_order: Apparel,Beauty,Tech Accessories,Home Appliances
   repo_url: https://github.com/couponscout/couponscout-promo-radar
   repo_label: Source on GitHub
+  contact_email: martin888666a@163.com
+  operator: an independent developer
+  ad_networks: 
+  host_provider: Cloudflare Pages
+  analytics: none
 ::RULE{repo_url 为空⇒页脚不渲染这条链接 不许填占位地址 不许写一个还不存在的仓库}
 ::RULE{repo_url 有值⇒页脚渲染一条指向它的链接 地址必须真实可点开}
+::RULE{contact_email 是 REPLACE_ME_EMAIL 或为空⇒contact 页不渲染 mailto 只用 issue tracker 不许编一个邮箱}
+::RULE{ad_networks 为空⇒privacy 页写明本页更新时站上还没有挂任何第三方广告代码 不许谎称已挂}
+::RULE{ad_networks 有值⇒privacy 页按实际联盟名逐个列出 不许用通用说法含糊带过}
 
 ::MODULE{POLICY|title:站点自己的规矩}
   ::RULE{每条优惠必须带 source_url 指向被抓的公开页面}
